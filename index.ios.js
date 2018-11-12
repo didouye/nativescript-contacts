@@ -3,7 +3,7 @@ var Contact = require("./contact-model");
 var KnownLabel = require("./known-label");
 var Group = require("./group-model");
 
-var CustomCNContactPickerViewControllerDelegate = NSObject.extend({    
+var CustomCNContactPickerViewControllerDelegate = NSObject.extend({
     initWithResolveReject: function(resolve, reject) {
         var self = this.super.init();
         if(self) {
@@ -18,17 +18,17 @@ var CustomCNContactPickerViewControllerDelegate = NSObject.extend({
            response: "cancelled"
         });
     },
-    contactPickerDidSelectContact: function(controller, contact) {        
+    contactPickerDidSelectContact: function(controller, contact) {
         controller.dismissModalViewControllerAnimated(true);
-        
+
         //Convert the native contact object
         var contactModel = new Contact();
         contactModel.initializeFromNative(contact);
-        
+
         this.resolve({
             data: contactModel,
             response: "selected"
-        });        
+        });
         CFRelease(controller.delegate);
     }
 }, {
@@ -61,11 +61,11 @@ exports.getContactsByName = function(searchPredicate,contactFields){
         }
         worker.postMessage({ "searchPredicate": searchPredicate, "contactFields" : contactFields });
         worker.onmessage = function (event) {
-            if (event.data.type == 'debug') { 
-                // console.log(event.data.message); 
+            if (event.data.type == 'debug') {
+                // console.log(event.data.message);
             }
-            else if (event.data.type == 'dump') { 
-                // console.dump(event.data.message); 
+            else if (event.data.type == 'dump') {
+                // console.dump(event.data.message);
             }
             else if (event.data.type == 'error') { reject(event.data.message); }
             else {
@@ -80,7 +80,15 @@ exports.getContactsByName = function(searchPredicate,contactFields){
 };
 exports.getAllContacts = function(contactFields) {
     return new Promise(function (resolve, reject) {
-        var worker = new Worker('./get-all-contacts-worker.js'); // relative for caller script path
+        var worker;
+        // Check if webpack is used, in which case, load using webpack loader, otherwise load using relative path
+        // Using webpack assumes that the nativescript worker loader is properly configured. See https://github.com/NativeScript/worker-loader
+        if (global["TNS_WEBPACK"]) {
+            var myWorker = require('nativescript-worker-loader!./get-all-contacts-worker.js');
+            worker = new myWorker();
+        } else {
+            worker = new Worker('./get-all-contacts-worker.js'); // relative for caller script path
+        }
         worker.postMessage({ "contactFields" : contactFields });
         worker.onmessage = function (event) {
             var _contacts = []
@@ -94,11 +102,11 @@ exports.getAllContacts = function(contactFields) {
                 // console.dump(e)
             }
             event.data.message.data = _contacts
-            if (event.data.type == 'debug') { 
+            if (event.data.type == 'debug') {
                 // console.log(event.data.message);
              }
-            else if (event.data.type == 'dump') { 
-                // console.dump(event.data.message); 
+            else if (event.data.type == 'dump') {
+                // console.dump(event.data.message);
             }
             else if (event.data.type == 'error') { reject(event.data.message); }
             else {
@@ -115,16 +123,16 @@ exports.getGroups = function(name){
     return new Promise(function (resolve, reject){
         var store = new CNContactStore(),
         error;
-        
+
         var foundGroups = store.groupsMatchingPredicateError(null, error);
-        
+
         if(error){
             reject(error.localizedDescription);
         }
-        
+
         if (foundGroups.count > 0) {
             var groups = [],i=0,groupModel=null;
-            
+
             if(name){
                 var foundGroupsMutable = foundGroups.mutableCopy();
                 for(i=0; i<foundGroupsMutable.count; i++){
@@ -169,32 +177,32 @@ exports.getContactsInGroup=function(g){
         var store = new CNContactStore(),
         error,
         keysToFetch = [
-                "givenName", 
-                "familyName", 
-                "middleName", 
-                "namePrefix", 
-                "nameSuffix", 
-                "phoneticGivenName", 
-                "phoneticMiddleName", 
-                "phoneticFamilyName", 
-                "nickname", 
-                "jobTitle", 
-                "departmentName", 
-                "organizationName", 
-                "notes", 
-                "phoneNumbers", 
-                "emailAddresses", 
-                "postalAddresses", 
-                "urlAddresses", 
+                "givenName",
+                "familyName",
+                "middleName",
+                "namePrefix",
+                "nameSuffix",
+                "phoneticGivenName",
+                "phoneticMiddleName",
+                "phoneticFamilyName",
+                "nickname",
+                "jobTitle",
+                "departmentName",
+                "organizationName",
+                "notes",
+                "phoneNumbers",
+                "emailAddresses",
+                "postalAddresses",
+                "urlAddresses",
                 "imageData",
                 "imageDataAvailable"
         ], // All Properties that we are using in the Model
         foundContacts = store.unifiedContactsMatchingPredicateKeysToFetchError(CNContact.predicateForContactsInGroupWithIdentifier(g.id), keysToFetch, error);
-        
+
         if(error){
             reject(error.localizedDescription);
         }
-        
+
         if (foundContacts.count > 0) {
             var cts = [];
             for(var i=0; i<foundContacts.count; i++){

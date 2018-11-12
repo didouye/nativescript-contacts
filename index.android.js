@@ -82,11 +82,11 @@ exports.getContactsByName = function (searchPredicate,contactFields) {
         }
         worker.postMessage({ "searchPredicate": searchPredicate, "contactFields" : contactFields });
         worker.onmessage = (function (event) {
-            if (event.data.type == 'debug') { 
-                // console.log(event.data.message); 
+            if (event.data.type == 'debug') {
+                // console.log(event.data.message);
             }
-            else if (event.data.type == 'dump') { 
-                // console.dump(event.data.message); 
+            else if (event.data.type == 'dump') {
+                // console.dump(event.data.message);
             }
             else if (event.data.type == 'result') {
                 worker.terminate();
@@ -103,18 +103,26 @@ exports.getContactsByName = function (searchPredicate,contactFields) {
 
 exports.getAllContacts = function (contactFields) {
     return new Promise(function (resolve, reject) {
-        var worker = new Worker('./get-all-contacts-worker.js'); // relative for caller script path
+        var worker;
+        // Check if webpack is used, in which case, load using webpack loader, otherwise load using relative path
+        // Using webpack assumes that the nativescript worker loader is properly configured. See https://github.com/NativeScript/worker-loader
+        if (global["TNS_WEBPACK"]) {
+            var myWorker = require('nativescript-worker-loader!./get-all-contacts-worker.js');
+            worker = new myWorker();
+        } else {
+            worker = new Worker('./get-all-contacts-worker.js'); // relative for caller script path
+        }
         worker.postMessage({ "contactFields" : contactFields });
         worker.onmessage = (function (event) {
-            if (event.data.type == 'debug') { 
-                // console.log(event.data.message); 
+            if (event.data.type == 'debug') {
+                // console.log(event.data.message);
             }
-            else if (event.data.type == 'dump') { 
-                // console.dump(event.data.message); 
+            else if (event.data.type == 'dump') {
+                // console.dump(event.data.message);
             }
             else if (event.data.type == 'result') {
                 worker.terminate();
-                
+
                 // init worker serialized contacts with Contact model
                 var _contacts = []
                 try{
